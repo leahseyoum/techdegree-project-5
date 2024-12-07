@@ -36,9 +36,9 @@ public class Application {
         System.out.printf("----------------------------------------------------------------%n");
         for (Country country : countries) {
             if(country.getInternetUsers() != null && country.getAdultLiteracyRate() != null) {
-                System.out.printf(" %-8s %-25s %.4g %.4g %n", country.getCode(), country.getName(), country.getInternetUsers(), country.getAdultLiteracyRate());
+                System.out.printf(" %-8s %-35s %.2f     %.2f %n", country.getCode(), country.getName(), country.getInternetUsers(), country.getAdultLiteracyRate());
             } else if (country.getInternetUsers() != null && country.getAdultLiteracyRate() == null) {
-                System.out.printf(" %-8s %-25s %.4g -- %n", country.getCode(), country.getName(), country.getInternetUsers());
+                System.out.printf(" %-8s %-35s %.2f     -- %n", country.getCode(), country.getName(), country.getInternetUsers());
             }
         }
     }
