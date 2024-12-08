@@ -18,6 +18,7 @@ import java.util.*;
 public class Application {
     // reusable session factory
     private static final SessionFactory sessionFactory = buildSessionFactory();
+    private static final BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
     private static SessionFactory buildSessionFactory() {
         final ServiceRegistry registry = new StandardServiceRegistryBuilder().configure().build();
@@ -29,12 +30,14 @@ public class Application {
     }
 
     private static Country createCountry() throws IOException{
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         System.out.printf("%nWhat is the country name: ");
         String name = reader.readLine().trim();
 
-        System.out.printf("%nWhat is the country code (three characters): ");
-        String code = reader.readLine().trim();
+        String code ="";
+        while (code.length() != 3) {
+            System.out.printf("%nWhat is the country code (three characters): ");
+            code = reader.readLine().trim();
+        }
 
         System.out.printf("%nWhat is the rate of Internet users: ");
         String internetUsers = reader.readLine().trim();
@@ -48,29 +51,31 @@ public class Application {
                 .build();
     }
 
-    private static String add() throws IOException{
+    private static void add() throws IOException{
         Country country = createCountry();
         Session session = sessionFactory.openSession();
 
         session.beginTransaction();
 
-        String code = (String) session.save(country);
+        session.save(country);
 
         session.getTransaction().commit();
 
         session.close();
 
-        return code;
+        System.out.printf("%n%s has been added", country.getName());
     }
 
     private static String promptForCode() throws IOException{
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         System.out.println("Select a country code: ");
         return reader.readLine().trim();
     }
 
     private static Country fetchCountryByCode() throws IOException{
-        String code = promptForCode();
+        String code ="";
+        while (code.length() != 3) {
+            code = promptForCode();
+        }
         Session session = sessionFactory.openSession();
         Country country = session.get(Country.class, code);
         session.close();
@@ -78,7 +83,6 @@ public class Application {
     }
 
     private static Country editCountry() throws IOException{
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         Country country = fetchCountryByCode();
 
         System.out.println("New name: ");
@@ -98,12 +102,12 @@ public class Application {
 
     private static void update() throws IOException{
        Country country = editCountry();
-        System.out.println(country);
        Session session = sessionFactory.openSession();
        session.beginTransaction();
        session.update(country);
        session.getTransaction().commit();
        session.close();
+       System.out.printf("%n%s has been updated%n", country.getName());
     }
 
     private static void delete() throws IOException{
@@ -113,6 +117,7 @@ public class Application {
         session.delete(country);
         session.getTransaction().commit();
         session.close();
+        System.out.printf("%n%s has been deleted%n", country.getName());
     }
 
     private static void displayCountries() {
@@ -136,29 +141,37 @@ public class Application {
 
 
     private static List<Country> fetchAllCountries() {
-        Session session = sessionFactory.openSession();
 
-        CriteriaBuilder cb = session.getCriteriaBuilder();
+        try(Session session = sessionFactory.openSession()) {
 
-        CriteriaQuery<Country> query = cb.createQuery(Country.class);
+            CriteriaBuilder cb = session.getCriteriaBuilder();
 
-        Root<Country> root = query.from(Country.class);
+            CriteriaQuery<Country> query = cb.createQuery(Country.class);
 
-        query.select(root);
+            Root<Country> root = query.from(Country.class);
 
-        return session.createQuery(query).getResultList();
+            query.select(root);
+
+            List <Country> countries = session.createQuery(query).getResultList();
+
+            session.close();
+
+            return countries;
+        }
     }
 
     private static void statistics () {
         List<Country> countries = fetchAllCountries();
 
+        System.out.println("       Statistics       ");
+        System.out.println("------------------------");
         // find max value for internet users
         Country countryWithMaxInternetUsers = countries.stream()
                 .filter(country -> country.getInternetUsers() != null)
                 .max(Comparator.comparing(Country::getInternetUsers))
                 .orElse(null);
 
-                System.out.printf("%nCountry with the highest percentage of internet users: %s with %.2f %n", countryWithMaxInternetUsers.getName(), countryWithMaxInternetUsers.getInternetUsers());
+                System.out.printf("Country with the highest percentage of internet users: %s with %.2f %n", countryWithMaxInternetUsers.getName(), countryWithMaxInternetUsers.getInternetUsers());
 
                 //min value for internet users
         Country countryWithMinInternetUsers = countries.stream()
@@ -205,7 +218,6 @@ public class Application {
     }
 
     private static String promptAction() throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
          Map<String, String> menu = new TreeMap<>();
          menu.put("View", "View all countries data");
          menu.put("Statistics", "View maximum, minimum and mean values for each indicator");
@@ -214,7 +226,7 @@ public class Application {
          menu.put("Delete", "Delete country data");
          menu.put("Exit", "Exit application");
 
-        System.out.printf("%nMenu%n");
+        System.out.printf("%n%nMenu%n");
          for (Map.Entry<String, String> entry : menu.entrySet()) {
              System.out.println(entry.getKey() + ": " + entry.getValue());
          }
